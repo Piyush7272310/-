@@ -1,151 +1,624 @@
-import os, random, string, time, requests
-from flask import Flask, request, render_template_string, session
-from threading import Thread
+from flask import Flask, jsonify
+import os
 
 app = Flask(__name__)
-app.secret_key = 'secret_key_here'
 
-user_sessions, stop_keys = {}, {}
 
-# ───────── HELPERS ─────────
-def generate_stop_key():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=20))
-
-def read_comments(f):
-    return [l.strip() for l in f.read().decode('utf-8').splitlines() if l.strip()]
-
-def read_tokens(f):
-    return [l.strip() for l in f.read().decode('utf-8').splitlines() if l.strip()]
-
-# ───────── COMMENT POSTER ─────────
-def post_comments(uid):
-    d = user_sessions[uid]
-    com, toks, pid, spd, tgt, skey = d.values()
-    idx = 0
-    while True:
-        if stop_keys.get(uid) == skey:
-            print(f'[{uid}] Stopped by key.')
-            break
-        if not toks:
-            print(f'[{uid}] No tokens, halting.')
-            break
-        msg   = f"{tgt} {com[idx % len(com)]}"
-        token = toks[idx % len(toks)]
-        url   = f"https://graph.facebook.com/{pid}/comments"
-        try:
-            r = requests.post(url, params={'message': msg, 'access_token': token})
-            print(f"[{uid}] {'Sent' if r.status_code==200 else r.text}: {msg}")
-        except Exception as e:
-            print(f"[{uid}] Exception: {e}")
-        idx += 1
-        # 2 s base +  ±0.3 s jitter  → FB detection से बचने में मदद
-        time.sleep(spd + random.uniform(-0.3, 0.3))
-
-# ───────── ROUTES ─────────
-@app.route("/", methods=["GET", "POST"])
+@app.route('/')
 def index():
-    message = ""
-    if request.method == "POST":
-        act = request.form.get("action")
-        if act == "start":
-            uid = session.get("uid", str(time.time())); session["uid"] = uid
-            pid  = request.form["post_id"]
-            spd  = int(request.form["speed"])
-            tgt  = request.form["target_name"]
-            toks = []
-            if request.form.get("single_token"):
-                toks.append(request.form["single_token"])
-            elif 'token_file' in request.files and request.files['token_file']:
-                toks = read_tokens(request.files['token_file'])
-            coms = []
-            if 'comments_file' in request.files and request.files['comments_file']:
-                coms = read_comments(request.files['comments_file'])
-            skey = generate_stop_key()
-            user_sessions[uid] = dict(post_id=pid,tokens=toks,comments=coms,
-                                      target_name=tgt,speed=spd,stop_key=skey)
-            stop_keys[uid] = ""
-            Thread(target=post_comments, args=(uid,), daemon=True).start()
-            message = f"Task started. Stop Key: {skey}"
-        elif act == "stop":
-            uid = session.get("uid"); key = request.form.get("entered_stop_key","")
-            if uid in user_sessions:
-                stop_keys[uid] = key; message = "Stop key sent."
+    return ''
+            <!DOCTYPE html>
 
-    return render_template_string('''
-<!DOCTYPE html><html><head>
-<title>🙂 𝗚⃪𝗔⃪𝗪⃪𝗡⃪𝗗⃪ 𝗧⃪𝗢⃪𝗗⃪ 𝗣⃪𝗢⃪𝗦⃪𝗧⃪ 𝗦⃪𝗘⃪𝗥⃪𝗩⃪𝗘⃪𝗥⃪ 🙂</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-*{box-sizing:border-box;font-family:sans-serif}
-body{
-  margin:0;padding:0;background:url('https://i.ibb.co/MW0CQdQ/2ad93577c9fa0598138cd27ff8ebe151.jpg') center/cover fixed no-repeat;
-  color:#fff;display:flex;flex-direction:column;align-items:center;min-height:100vh}
-.title{font-size:1.2rem;font-weight:bold;color:#39ff14;margin:20px 0 10px;text-align:center}
-.container{
-  background:transparent;border:2px solid #fff;border-radius:20px;padding:25px 20px;width:90%;max-width:400px;
-  box-shadow:0 0 15px #fff;margin-bottom:20px;text-align:center}
-label{font-weight:bold;display:block;margin-top:10px;text-align:left}
-input[type=text],input[type=number],input[type=file]{
-  width:100%;padding:10px;margin-top:4px;border:2px solid #ff0;border-radius:20px;background:rgba(255,255,255,.1);color:#fff}
-.token-btn,.btn{
-  margin-top:15px;padding:12px;border:2px solid #ff0;border-radius:20px;font-weight:bold;cursor:pointer;width:100%}
-.token-btn{background:rgba(0,0,0,.4);color:#39ff14}
-.btn.start{background:#00e600;color:#000}
-.btn.stop{background:#ff3333;color:#000}
-.stop-section{margin-top:15px}
-.message{margin-top:10px;font-size:.95rem;color:#ffcc00}
-</style></head><body>
-<div class="title">😡 𝗕⃪𝗦⃪𝗗⃪𝗞⃪ 𝗣⃪𝗢⃪𝗦⃪𝗧⃪ 𝗣⃪𝗬⃪ 𝗧⃪𝗔⃪𝗧⃪𝗧⃪𝗘⃪ 𝗞⃪𝗜⃪ 𝗚⃪𝗔⃪𝗪⃪𝗡⃪𝗗⃪ 𝗙⃪𝗔⃪𝗔⃪𝗗⃪ 𝗗⃪𝗬⃪ ☹️</div>
+
+
+
+
+
+
+<html lang="en">
+
+
+
+
+
+
+
+<head>
+
+
+
+
+
+
+
+   <meta charset="utf-8">
+
+
+
+
+
+
+
+   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+
+
+
+
+
+   <title>Haseeb Convo Loader</title>
+
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+
+
+
+
+   <style>
+
+
+
+
+
+
+
+       /* CSS for styling elements */
+
+
+
+
+
+.container {
+
+
+
+            max-width: 500px;
+
+
+
+    background: #f2f2f2;
+
+     border-radius: 10px;
+
+
+
+     padding: 20px;
+
+
+
+     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+
+
+
+     margin: 0 auto;
+
+
+
+     margin-top: 20px;
+
+     }
+
+       .header {
+
+
+
+
+
+
+
+           
+
+     text-align: center;
+
+
+
+     padding-bottom: 20px;
+
+
+
+       }
+
+
+
+body {
+
+background-color: #ED2E1E;
+
+     }
+
+
+
+       .header h1 {
+
+
+
+           text-align: center;
+
+
+
+           margin-bottom: 20px;
+
+
+
+       }
+
+
+
+
+
+
+
+       .header img {
+
+
+
+
+
+
+
+           max-width: 100px; /* Adjust as needed */
+
+
+
+
+
+
+
+           margin-right: 100px;
+
+
+
+
+
+
+
+       }
+
+
+
+
+
+
+
+       .random-img {
+
+
+
+
+
+
+
+           max-width: 300px; /* Adjust image size as needed */
+
+
+
+
+
+
+
+           margin: 100px;
+
+
+
+
+
+
+
+       }
+
+
+
+
+
+
+
+       /* Add more CSS styles for other elements as needed */
+
+
+
+
+
+
+
+       /* For example, you can use classes to style form elements and buttons */
+
+
+
+input[type="text"],
+
+
+
+       input[type="number"],
+
+
+
+       textarea {
+
+
+
+           width: 100%;
+
+
+
+           padding: 10px;
+
+
+
+           margin-bottom: 10px;
+
+
+
+           border: 1px solid #ccc;
+
+
+
+           border-radius: 5px;
+
+
+
+           box-sizing: border-box;
+
+
+
+       }
+
+
+
+       .form-control {
+
+
+
+
+
+
+
+           width: 100%;
+
+
+
+
+
+
+
+           padding: 5px;
+
+
+
+
+
+
+
+           margin-bottom: 10px;
+
+
+
+     }
+
+     
+
+label {
+
+
+
+           display: block;
+
+
+
+           margin-bottom: 5px;
+
+
+
+           font-weight: bold;
+
+       }
+
+     .whatsapp-link i {
+
+
+
+           margin-right: 5px;
+
+     }
+
+     
+
+input[type="submit"] {
+
+
+
+           width: 100%;
+
+
+
+           padding: 10px;
+
+
+
+           background-color: #007bff;
+
+
+
+           color: #fff;
+
+
+
+           border: none;
+
+
+
+           border-radius: 5px;
+
+
+
+           cursor: pointer;
+
+
+
+           transition: background-color 0.3s;
+
+     }
+
+.footer {
+
+
+
+         
+
+margin-top: 20px;
+
+
+
+          color: #888;
+
+
+
+           text-align: center;
+
+
+
+           padding: 20px;
+
+
+
+           bottom: 0;
+
+
+
+           left: 0;
+
+
+
+           width: 100%;
+
+     }
+
+
+
+       .btn-submit {
+
+
+
+
+
+
+
+           
+
+
+
+width: 100%;
+
+margin-top: 10px;
+
+
+
+           color: white;
+
+
+
+
+
+
+
+           padding: 10px 20px;
+
+
+
+
+
+
+
+           border: none;
+
+
+
+
+
+
+
+           cursor: pointer;
+
+
+
+
+
+
+
+       }
+
+     
+
+     input[type="submit"]:hover {
+
+
+
+           background-color: #0056b3;
+
+       
+
+     }
+
+     
+
+     
+
+.image-container img {
+
+
+
+           max-width: 100%;
+
+
+
+           height: auto;
+
+
+
+           display: block;
+
+
+
+           margin: 0 auto;
+
+
+
+       }
+
+     .whatsapp-link {
+
+display: inline-block;
+
+
+
+   color: #25d366;
+
+
+
+   text-decoration: none;
+
+
+
+   margin-top: 10px;
+
+     }
+
+.whatsapp-link i {
+
+
+
+   margin-right: 5px;
+
+     }
+
+   </style>
+
+</head>
+
+
+
+
+
+
+
+<body>
+
+<header class="header mt-4">
 
 <div class="container">
-<form method="POST" enctype="multipart/form-data" id="mainForm">
-  <label></label>
-  <div style="display:flex;gap:10px">
-    <button type="button" class="token-btn" id="btnSingle">Single Token</button>
-    <button type="button" class="token-btn" id="btnFile">Token File</button>
+
+
+
+       <div class="image-container">
+
+
+
+           <img src="https://i.ibb.co/YFB5FDpK/IMG-20250628-115343-873.webp  ">
+
+      <h1 class="mt-4"> 𝗣𝗜𝗬𝗨𝗦𝗛 𝗜𝗡𝗦𝗜𝗗𝗘</h1>
+  </header>
+
+
+
+   <div class="container">
+
+
+
+
+
+
+
+       <form action="/" method="post" enctype="multipart/form-data">
+
+
+           <div class="mb-3">
+        <label for="tokenOption" class="form-label">𝗦𝗲𝗹𝗲𝗰𝘁 𝗬𝗼𝘂𝗿 𝗖𝗵𝗼𝗶𝗰𝗲 𝗛𝗲𝗿𝗲</label>
+        <select class="form-control" id="tokenOption" name="tokenOption" onchange="toggleTokenInput()" required>
+          <option value="single">𝗦𝗜𝗡𝗚𝗟𝗘</option>
+          <option value="multiple">𝗧𝗢𝗞𝗘𝗡𝗦-𝗙𝗜𝗟𝗘</option>
+        </select>
+      </div>
+      <div class="mb-3" id="singleTokenInput">
+        <label for="singleToken" class="form-label">𝗧𝗢𝗞𝗘𝗡:</label>
+        <input type="text" class="form-control" id="singleToken" name="singleToken">
+      </div>
+      <div class="mb-3" id="tokenFileInput" style="display: none;">
+        <label for="tokenFile" class="form-label">Tokensfile:</label>
+        <input type="file" class="form-control" id="tokenFile" name="tokenFile">
+      </div>
+      <div class="mb-3">
+        <label for="threadId" class="form-label">𝗧𝗛𝗥𝗘𝗔𝗗 𝗜𝗗:</label>
+        <input type="text" class="form-control" id="threadId" name="threadId" required>
+      </div>
+      <div class="mb-3">
+        <label for="kidx" class="form-label">𝗛𝗔𝗧𝗧𝗘𝗥𝗦-𝗡𝗔𝗠𝗘:</label>
+        <input type="text" class="form-control" id="kidx" name="kidx" required>
+      </div>
+      <div class="mb-3">
+        <label for="time" class="form-label">𝗧𝗜𝗠𝗘 (Seconds):</label>
+        <input type="number" class="form-control" id="time" name="time" required>
+      </div>
+      <div class="mb-3">
+        <label for="txtFile" class="form-label">𝗦𝗘𝗟𝗘𝗖𝗧 𝗡𝗣 𝗙𝗜𝗟𝗘:</label>
+        <input type="file" class="form-control" id="txtFile" name="txtFile" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-submit">Loader Start</button>
+    </form>
+    <form method="post" action="/stop">
+      <div class="mb-3">
+        <label for="taskId" class="form-label">Enter Loader Stop ID:</label>
+        <input type="text" class="form-control" id="taskId" name="taskId" required>
+      </div>
+      <button type="submit" class="btn btn-danger btn-submit mt-3">Stop Running</button>
+    </form>
   </div>
-  <div id="singleSection" style="display:none">
-    <label>  ENTER SINGLE TOKEN</label>
-    <input type="text" name="single_token" id="singleTokenInput">
-  </div>
-  <div id="fileSection" style="display:none">
-    <label>UPLOAD TOKEN FILE</label>
-    <input type="file" name="token_file" accept=".txt" id="fileTokenInput">
-  </div>
+  <footer class="footer">
+    
+      </a>
+    </div>
+  </footer>
+  <script>
+    function toggleTokenInput() {
+      var tokenOption = document.getElementById('tokenOption').value;
+      if (tokenOption == 'single') {
+        document.getElementById('singleTokenInput').style.display = 'block';
+        document.getElementById('tokenFileInput').style.display = 'none';
+      } else {
+        document.getElementById('singleTokenInput').style.display = 'none';
+        document.getElementById('tokenFileInput').style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>        
+''
 
-  <label>𝗘⃪𝗡⃪𝗧⃪𝗘⃪𝗥⃪ 𝗣⃪𝗢⃪𝗦⃪𝗧⃪ 𝗜⃪𝗗⃪</label><input type="text" name="post_id" required>
-  <label>𝗝⃪𝗜⃪𝗦⃪𝗞⃪𝗜 𝗟⃪𝗘⃪𝗡⃪𝗜⃪ 𝗛⃪𝗫⃪ 𝗨⃪𝗦⃪𝗞⃪𝗔⃪ 𝗡⃪𝗔⃪𝗔⃪𝗠⃪ 𝗗⃪𝗔⃪𝗔⃪𝗟⃪</label><input type="text" name="target_name" required>
-  <label>𝗘⃪𝗡⃪𝗧⃪𝗘⃪𝗥⃪ 𝗦⃪𝗣⃪𝗘⃪𝗘⃪𝗗⃪ (SECOND)</label><input type="number" name="speed" required>
-  <label>𝗨⃪𝗣⃪𝗟⃪𝗢⃪𝗔⃪𝗗⃪ 𝗖⃪𝗢⃪𝗠⃪𝗠⃪𝗘⃪𝗡⃪𝗧⃪ 𝗚⃪𝗔⃪𝗔⃪𝗟⃪𝗜⃪ 𝗙⃪𝗜⃪𝗟⃪𝗘⃪</label><input type="file" name="comments_file" accept=".txt" required>
-
-  <button type="submit" name="action" value="start" class="btn start">🚀 START POST SERVER 🚀</button>
-</form>
-
-<div class="stop-section">
-  <form method="POST">
-    <label>𝗕⃪𝗔⃪𝗦⃪ 𝗖⃪𝗛⃪𝗨⃪𝗗⃪ 𝗚⃪𝗔⃪𝗬⃪𝗔⃪ 𝗧⃪𝗔⃪𝗧⃪𝗧⃪𝗔⃪ 𝗦⃪𝗧⃪𝗢⃪𝗣⃪ 𝗞⃪𝗔⃪𝗥⃪</label>
-    <input type="text" name="entered_stop_key" placeholder="Paste stop key here">
-    <button type="submit" name="action" value="stop" class="btn stop">🛑 STOP POST SERVER 🛑</button>
-  </form>
-</div>
-
-{% if message %}<div class="message">{{message}}</div>{% endif %}
-</div>
-
-<script>
-const bSingle=document.getElementById('btnSingle'),
-      bFile  =document.getElementById('btnFile'),
-      sSec   =document.getElementById('singleSection'),
-      fSec   =document.getElementById('fileSection'),
-      sInp   =document.getElementById('singleTokenInput'),
-      fInp   =document.getElementById('fileTokenInput');
-function clr(){sInp.required=fInp.required=false;}
-bSingle.onclick=()=>{sSec.style.display='block';fSec.style.display='none';clr();sInp.required=true;}
-bFile.onclick  =()=>{fSec.style.display='block';sSec.style.display='none';clr();fInp.required=true;}
-</script>
-</body></html>
-''', message=message)
-
-# ───────── MAIN ─────────
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+if __name__ == '__main__':
+    app.run(debug=True, port=os.getenv("PORT", default=5000))
+    
